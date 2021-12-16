@@ -1,42 +1,43 @@
 [
     {
-        "key": "UserName",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "label": "UserName",
-            "description": "The UserName to connect to Topicus Somtoday",
-            "required": true
-        }
+      "key": "UserName",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "label": "UserName",
+        "description": "The UserName to connect to Topicus Somtoday",
+        "required": true
+      }
     },
     {
-        "key": "Password",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "type": "password",
-            "label": "Password",
-            "required": true
-        }
+      "key": "Password",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "type": "password",
+        "label": "Password",
+        "required": true
+      }
     },
     {
-        "key": "BaseUrl",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "label": "BaseUrl",
-            "description": "The URL to the API.",
-            "required": true
-        }
+      "key": "BaseUrl",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "label": "BaseUrl",
+        "description": "The URL to the API.",
+        "required": true
+      }
     },
     {
-        "key": "BrinNr",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-            "label": "BrinNummer",
-            "description": "The BrinNummer of the college",
-            "required": true
-        }
+      "key": "BrinNr",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "label": "BrinNummer",
+        "placeholder": "The BrinNummer of the college",
+        "description": "Specify BrinNummer for a fixed value, leave empty to specify the BrinNummer in scripting dynamically",
+        "required": false
+      }
     }
-]
+  ]

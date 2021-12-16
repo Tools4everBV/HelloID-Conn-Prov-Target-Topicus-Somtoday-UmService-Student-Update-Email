@@ -14,9 +14,18 @@ $aRef = $AccountReference | ConvertFrom-Json
 $success = $false
 $auditLogs = New-Object Collections.Generic.List[PSCustomObject]
 
+if([string]::IsNullOrEmpty($config.BrinNr))
+{
+    $brin = $p.Custom.Brin
+}
+else
+{
+    $brin = $config.BrinNr
+}
+
 $account = @{
     LeerlingNummer = $aRef
-    LeerlingEmail  = $pd.Contact.Business.Email.New
+    LeerlingEmail  = $($p.Accounts.MicrosoftActiveDirectory.mail)
 }
 
 try {
@@ -27,38 +36,17 @@ try {
     }
 
     Write-Verbose "Veryfing if student with id: [$($p.ExternalId)] exists"
-    $getStudentXmlBody = @"
-    <?xml version="1.0" encoding="utf-8"?>
-    <Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-        <Body>
-            <getDataLeerlingen xmlns="http://services.mijnsom.nl">
-                <brinNr xmlns="">
-                    $($config.BrinNr)
-                </brinNr>
-                <username xmlns="">
-                    $($config.UserName)
-                </username>
-                <password xmlns="">
-                    $($config.Password)
-                </password>
-                <schooljaar xmlns="" />
-                <vestigingAfkorting xmlns="" />
-                <leerlingnummer xmlns="">
-                    $($account.LeerlingNummer)
-                </leerlingnummer>
-            </getDataLeerlingen>
-        </Body>
-    </Envelope>
-"@
+    $getStudentXmlBody = "<?xml version=`"1.0`" encoding=`"utf-8`"?><soap:Envelope xmlns:soap=`"http://schemas.xmlsoap.org/soap/envelope/`" xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`" xmlns:xsd=`"http://www.w3.org/2001/XMLSchema`" xmlns=`"http://services.mijnsom.nl`"><soap:Body><getDataLeerlingen><brinNr xmlns=`"`">$brin</brinNr><username xmlns=`"`">$($config.UserName)</username><password xmlns=`"`">$($config.Password)</password><leerlingnummer xmlns=`"`">$($p.ExternalId)</leerlingnummer></getDataLeerlingen></soap:Body></soap:Envelope>"
+
 
     $splatRestMethodParams['Body'] = $getStudentXmlBody
     $responseGetLeerling = Invoke-RestMethod @splatRestMethodParams
-    if ($responseGetLeerling.Envelope.Body.getDataLeerlingenResponse.return.leerlingEmail -ne $p.Contact.Business.Email){
+    if ($responseGetLeerling.Envelope.Body.getDataLeerlingenResponse.return.leerlingEmail -ne $account.LeerlingEmail){
         $action = 'Update'
         $msg = "$action Somtoday account for: [$($p.DisplayName)] will be executed during enforcement"
-    } elseif ($responseGetLeerling.Envelope.Body.getDataLeerlingenResponse.return.leerlingEmail -eq $p.Contact.Business.Email){
+    } elseif ($responseGetLeerling.Envelope.Body.getDataLeerlingenResponse.return.leerlingEmail -eq $account.LeerlingEmail){
         $action = 'Exit'
-        $msg = "Email address: [$($p.contact.Business.Email)] for student with id: [$($account.leerlingNummer)] is the same as in Somtoday and does not require an update"
+        $msg = "Email address: [$($account.LeerlingEmail)] for student with id: [$($account.leerlingNummer)] is the same as in Somtoday and does not require an update"
     } elseif (!$responseGetLeerling.Envelope.Body.GetDataLeerlingenResponse.return.leerlingNummer){
         $msg = "Student with id: [$($account.leerlingNummer)] cannot be found"
         $action = 'Exit'
@@ -74,32 +62,7 @@ try {
             'Update' {
                 Write-Verbose "Updating Somtoday account for: [$($p.DisplayName)]"
 
-                $updateStudentXmlBody = @"
-                <?xml version="1.0" encoding="utf-8"?>
-                <Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-                    <Body>
-                        <writeDataLeerlingen xmlns="http://services.mijnsom.nl">
-                            <brinNr xmlns="">
-                                $($config.BrinNr)
-                            </brinNr>
-                            <username xmlns="">
-                                $($config.UserName)
-                            </username>
-                            <password xmlns="">
-                                $($config.Password)
-                            </password>
-                            <leerlingen xmlns="">
-                                <leerlingEmail>
-                                    $($account.LeerlingEmail)
-                                </leerlingEmail>
-                                <leerlingNummer>
-                                    $($account.LeerlingNummer)
-                                </leerlingNummer>
-                            </leerlingen>
-                        </writeDataLeerlingen>
-                    </Body>
-                </Envelope>
-"@
+                $updateStudentXmlBody = "<?xml version=`"1.0`" encoding=`"utf-8`"?><soap:Envelope xmlns:soap=`"http://schemas.xmlsoap.org/soap/envelope/`" xmlns:xsi=`"http://www.w3.org/2001/XMLSchema-instance`" xmlns:xsd=`"http://www.w3.org/2001/XMLSchema`"><soap:Body><writeDataLeerlingen xmlns=`"http://services.mijnsom.nl`"><brinNr xmlns=`"`">$brin</brinNr><username xmlns=`"`">$($config.UserName)</username><password xmlns=`"`">$($config.Password)</password><leerlingen xmlns=`"`"><leerlingEmail>$($account.LeerlingEmail)</leerlingEmail><leerlingNummer> $($account.LeerlingNummer)</leerlingNummer></leerlingen></writeDataLeerlingen></soap:Body></soap:Envelope>"
 
                 $splatRestMethodParams['Body'] = $updateStudentXmlBody
                 $responseWriteDataLeerling = Invoke-RestMethod @splatRestMethodParams
